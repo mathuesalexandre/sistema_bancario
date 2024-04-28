@@ -1,71 +1,127 @@
-def depositar(saldo, extrato):
-    valor = float(input("Informe o valor do depósito: "))
-    if valor > 0:
-        saldo += valor
-        extrato += f"Depósito: R$ {valor:.2f}\n"
-    else:
-        print("Operação falhou! O valor informado é inválido.")
-    return saldo, extrato
+class Cliente:
+    def __init__(self, nome, cpf):
+        self.nome = nome
+        self.cpf = cpf
+        self.contas = []
 
-def sacar(saldo, extrato, numero_saques, limite, limite_saques):
-    valor = float(input("Informe o valor do saque: "))
-    excedeu_saldo = valor > saldo
-    excedeu_limite = valor > limite
-    excedeu_saques = numero_saques >= limite_saques
+    def abrir_conta(self, tipo_conta, saldo_inicial):
+        if tipo_conta.lower() not in ["corrente", "poupanca"]:
+            print("Tipo de conta inválido.")
+            return None
+        if saldo_inicial < 0:
+            print("Saldo inicial não pode ser negativo.")
+            return None
 
-    if excedeu_saldo:
-        print("Operação falhou! Você não tem saldo suficiente.")
-    elif excedeu_limite:
-        print("Operação falhou! O valor do saque excede o limite.")
-    elif excedeu_saques:
-        print("Operação falhou! Número máximo de saques excedido.")
-    elif valor > 0:
-        saldo -= valor
-        extrato += f"Saque: R$ {valor:.2f}\n"
-        numero_saques += 1
-    else:
-        print("Operação falhou! O valor informado é inválido.")
+        nova_conta = None
+        if tipo_conta.lower() == "corrente":
+            nova_conta = ContaCorrente(saldo_inicial)
+        elif tipo_conta.lower() == "poupanca":
+            nova_conta = ContaPoupanca(saldo_inicial)
 
-    return saldo, extrato, numero_saques
+        if nova_conta:
+            self.contas.append(nova_conta)
+            print("Conta aberta com sucesso.")
+        return nova_conta
 
-def exibir_extrato(saldo, extrato):
-    print("\n================ EXTRATO ================")
-    print("Não foram realizadas movimentações." if not extrato else extrato)
-    print(f"\nSaldo: R$ {saldo:.2f}")
-    print("==========================================")
+    def __str__(self):
+        return f"Cliente: {self.nome}, CPF: {self.cpf}"
 
-def main():
-    saldo = 0
-    limite = 500
-    extrato = ""
-    numero_saques = 0
-    limite_saques = 3
 
-    while True:
-        opcao = input(menu)
+class Conta:
+    def __init__(self, saldo_inicial):
+        if saldo_inicial < 0:
+            raise ValueError("Saldo inicial não pode ser negativo.")
+        self.saldo = saldo_inicial
 
-        if opcao == "d":
-            saldo, extrato = depositar(saldo, extrato)
+    def depositar(self, valor):
+        if valor <= 0:
+            print("Valor do depósito deve ser maior que zero.")
+            return
+        self.saldo += valor
+        print(f"Depósito de R${valor} realizado. Novo saldo: R${self.saldo}")
 
-        elif opcao == "s":
-            saldo, extrato, numero_saques = sacar(saldo, extrato, numero_saques, limite, limite_saques)
+    def sacar(self, valor):
+        if valor <= 0:
+            print("Valor do saque deve ser maior que zero.")
+            return
+        if valor > self.saldo:
+            print("Saldo insuficiente.")
+            return
+        self.saldo -= valor
+        print(f"Saque de R${valor} realizado. Novo saldo: R${self.saldo}")
 
-        elif opcao == "e":
-            exibir_extrato(saldo, extrato)
+    def __str__(self):
+        return f"Saldo: R${self.saldo}"
 
-        elif opcao == "q":
-            break
 
+class ContaCorrente(Conta):
+    def __init__(self, saldo_inicial):
+        super().__init__(saldo_inicial)
+
+
+class ContaPoupanca(Conta):
+    def __init__(self, saldo_inicial):
+        super().__init__(saldo_inicial)
+
+
+def menu_principal():
+    print("\n### Menu Principal ###")
+    print("1. Abrir conta")
+    print("2. Acessar conta")
+    print("3. Sair")
+
+
+def menu_acesso_conta(cliente):
+    print("\n### Acessar Conta ###")
+    print("Escolha a conta que deseja acessar:")
+    for i, conta in enumerate(cliente.contas):
+        print(f"{i + 1}. {conta}")
+    print("0. Voltar")
+
+
+# Solicitar nome e CPF do usuário
+nome_usuario = input("Digite seu nome: ")
+cpf_usuario = input("Digite seu CPF: ")
+cliente1 = Cliente(nome_usuario, cpf_usuario)
+
+while True:
+    menu_principal()
+    opcao = input("Escolha uma opção: ")
+
+    if opcao == "1":
+        tipo_conta = input("Digite o tipo de conta (corrente ou poupanca): ")
+        saldo_inicial = float(input("Digite o saldo inicial da conta: "))
+        cliente1.abrir_conta(tipo_conta, saldo_inicial)
+    elif opcao == "2":
+        if cliente1.contas:
+            menu_acesso_conta(cliente1)
+            opcao_conta = input("Escolha uma opção: ")
+            if opcao_conta.isdigit() and 0 < int(opcao_conta) <= len(cliente1.contas):
+                conta_selecionada = cliente1.contas[int(opcao_conta) - 1]
+                while True:
+                    print("\n### Menu da Conta ###")
+                    print("1. Depositar")
+                    print("2. Sacar")
+                    print("3. Voltar")
+                    opcao_operacao = input("Escolha uma opção: ")
+                    if opcao_operacao == "1":
+                        valor_deposito = float(input("Digite o valor do depósito: "))
+                        conta_selecionada.depositar(valor_deposito)
+                    elif opcao_operacao == "2":
+                        valor_saque = float(input("Digite o valor do saque: "))
+                        conta_selecionada.sacar(valor_saque)
+                    elif opcao_operacao == "3":
+                        break
+                    else:
+                        print("Opção inválida.")
+            elif opcao_conta == "0":
+                continue
+            else:
+                print("Opção inválida.")
         else:
-            print("Opção inválida! Por favor, escolha uma das opções válidas:")
-            print(menu)
-
-menu = """
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
-
-main()
+            print("Cliente não possui contas.")
+    elif opcao == "3":
+        print("Saindo do sistema...")
+        break
+    else:
+        print("Opção inválida.")
